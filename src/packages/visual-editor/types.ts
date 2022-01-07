@@ -1,6 +1,7 @@
 import { PropType } from 'vue'
 
 interface editorBlockData {
+  componentKey: string,
   top: number,
   left: number
 }
@@ -57,7 +58,11 @@ const EditorBlockType = () => (
   {
     block: {
       type: Object as PropType<editorBlockData>
+    },
+    config: {
+      type: Object as PropType<EditorConfig>,
+      require: true
     }
   })
 
-export { editorProps, editorType, EditorBlockType }
+export { EditorComponent, editorProps, editorType, EditorBlockType }

@@ -13,10 +13,14 @@ export default defineComponent({
       };
     });
 
+    console.log('props block.componentkey', props.block?.componentKey);
+
+    const component = props.config?.componentMap[props.block!.componentKey];
+
     return () => {
       return (
         <div class="visual-editor-block" style={styles.value}>
-          这个是一个block
+          {component?.render()}
         </div>
       );
     };
