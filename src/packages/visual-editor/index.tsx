@@ -85,6 +85,7 @@ export default defineComponent({
             componentKey: component!.key,
             top: e.offsetY,
             left: e.offsetX,
+            adjustPosition: true,
           });
 
           dataModel.value = {

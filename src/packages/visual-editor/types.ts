@@ -1,9 +1,10 @@
 import { PropType } from 'vue'
 
 interface editorBlockData {
-  componentKey: string,
-  top: number,
-  left: number
+  componentKey: string, //作为映射componentMap中的key
+  top: number, //在container里面的位置
+  left: number,
+  adjustPosition: boolean //是否需要做位置调整
 }
 
 interface editorType {
@@ -57,7 +58,8 @@ type EditorConfig = ReturnType<typeof createEditorConfig>
 const EditorBlockType = () => (
   {
     block: {
-      type: Object as PropType<editorBlockData>
+      type: Object as PropType<editorBlockData>,
+      require: true
     },
     config: {
       type: Object as PropType<EditorConfig>,
