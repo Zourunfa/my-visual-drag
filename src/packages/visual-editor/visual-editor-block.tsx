@@ -14,6 +14,13 @@ export default defineComponent({
     });
     const el = ref({} as HTMLDivElement);
 
+    const classes = computed(() => [
+      'visual-editor-block',
+      {
+        'visual-editor-block-focus': props.block?.focus,
+      },
+    ]);
+
     onMounted(() => {
       // 调整鼠标最后拖拽放置时的位置
       const block = props.block;
@@ -28,7 +35,7 @@ export default defineComponent({
     return () => {
       const component = props.config?.componentMap[props.block!.componentKey];
       return (
-        <div class="visual-editor-block" style={styles.value} ref={el}>
+        <div class={classes.value} style={styles.value} ref={el}>
           {component?.render()}
         </div>
       );

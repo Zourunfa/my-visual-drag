@@ -1,7 +1,12 @@
 import { useModel } from '@/hooks/useModel';
 import { computed, defineComponent, ref } from 'vue';
 import './index.scss';
-import { EditorComponent, editorProps, editorType } from './types';
+import {
+  editorBlockData,
+  EditorComponent,
+  editorProps,
+  editorType,
+} from './types';
 import VisualEditorBlock from './visual-editor-block';
 
 const props = editorProps();
@@ -21,6 +26,21 @@ export default defineComponent({
     );
     // containerRef监听移动过程变化
     const containerRef = ref({} as HTMLDivElement);
+
+    const methods = {
+      clearFocus: (block?: editorBlockData) => {
+        let blocks = dataModel.value!.blocks || [];
+        if (blocks.length == 0) {
+          return;
+        }
+
+        if (block) {
+          blocks = blocks.filter((item) => item !== block);
+        }
+        blocks?.forEach((block) => (block.focus = false));
+      },
+    };
+
     const menuDragger = (() => {
       let component = null as null | EditorComponent;
 
@@ -86,6 +106,7 @@ export default defineComponent({
             top: e.offsetY,
             left: e.offsetX,
             adjustPosition: true,
+            focus: false,
           });
 
           dataModel.value = {
@@ -96,6 +117,30 @@ export default defineComponent({
       };
 
       return blockHandler;
+    })();
+
+    const focusHandler = (() => {
+      return {
+        container: {
+          onMousedown: (e: MouseEvent) => {
+            e.stopPropagation();
+            e.preventDefault();
+            methods.clearFocus();
+          },
+        },
+        block: {
+          onMousedown: (e: MouseEvent, block: editorBlockData) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (e.shiftKey) {
+              block.focus = !block.focus;
+            } else {
+              block.focus = true;
+              methods.clearFocus(block);
+            }
+          },
+        },
+      };
     })();
 
     const renderMenuList = () => {
@@ -124,6 +169,10 @@ export default defineComponent({
 
           return (
             <visual-editor-block
+              {...{
+                onMousedown: (e: MouseEvent) =>
+                  focusHandler.block.onMousedown(e, block),
+              }}
               block={block}
               key={index}
               config={props.config}
@@ -150,6 +199,7 @@ export default defineComponent({
             <div class="visual-editor-content">
               <div
                 class="visual-editor-container"
+                {...focusHandler.container}
                 ref={containerRef}
                 style={containerStyle.value}
               >

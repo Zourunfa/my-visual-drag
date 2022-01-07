@@ -4,8 +4,10 @@ interface editorBlockData {
   componentKey: string, //作为映射componentMap中的key
   top: number, //在container里面的位置
   left: number,
-  adjustPosition: boolean //是否需要做位置调整
+  adjustPosition: boolean, //是否需要做位置调整
+  focus: boolean
 }
+
 
 interface editorType {
   container: {
@@ -67,4 +69,4 @@ const EditorBlockType = () => (
     }
   })
 
-export { EditorComponent, editorProps, editorType, EditorBlockType }
+export { editorBlockData, EditorComponent, editorProps, editorType, EditorBlockType }
