@@ -1,3 +1,5 @@
+@import '../assets/icons/iconfont.css';
+
 $head-size: 60px; //顶部操作栏高度
 $menu-size: 275px; //c
 $operator-size: 275px;
@@ -85,7 +87,48 @@ $primary: #409eff; //主色调
     top: 0;
     left: $menu-size;
     height: $head-size;
-    background-color: #409eff;
+    // background-color: #409eff;
+    display: flex;
+    align-items: center;
+    padding-top: 10px;
+    justify-content: center;
+    z-index: 2;
+
+    .visual-editor-head-button {
+      margin-left: 1px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(black, 0.3);
+      color: white;
+      height: 60px;
+      width: 60px;
+      cursor: pointer;
+      transition: all 300ms linear;
+      &:first-child {
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+      }
+
+      &:last-child {
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      &:hover {
+        background-color: white;
+        color: $primary;
+      }
+
+      i {
+        font-size: 20px;
+      }
+
+      span {
+        font-size: 10px;
+      }
+    }
   }
 
   & > .visual-editor-operator {

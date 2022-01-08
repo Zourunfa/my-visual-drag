@@ -1,5 +1,7 @@
 import { useModel } from '@/hooks/useModel';
+import { buttonNativeType } from 'element-plus';
 import { computed, defineComponent, ref } from 'vue';
+import { useVisualCommnad } from '../plugins/ccommand-create';
 import './index.scss';
 import {
   editorBlockData,
@@ -40,6 +42,12 @@ export default defineComponent({
           blocks = blocks.filter((item) => item !== block);
         }
         blocks?.forEach((block) => (block.focus = false));
+      },
+      updateBlocks: (blocks: editorBlockData[]) => {
+        return (dataModel.value = {
+          container: dataModel.value!.container,
+          blocks,
+        });
       },
     };
 
@@ -210,6 +218,29 @@ export default defineComponent({
       return { mousedown };
     })();
 
+    const commander = useVisualCommnad({ focusData, methods, dataModel });
+
+    const buttons = [
+      {
+        label: '撤销',
+        icon: 'icon-back',
+        handler: commander.undo,
+        tip: 'ctrl+z',
+      },
+      {
+        label: '重做',
+        icon: 'icon-forward',
+        handler: commander.redo,
+        tip: 'ctrl+y, ctrl+shift+z',
+      },
+      {
+        label: '删除',
+        icon: 'icon-delete',
+        handler: () => commander.delete(),
+        tip: 'ctrl+d, backspace, delete',
+      },
+    ];
+
     return () => {
       // 根据父级传过来的modelValue控制container的宽高
       const containerStyle = computed(() => {
@@ -258,10 +289,26 @@ export default defineComponent({
           })
         );
       };
+
+      const renderHead = () => {
+        return buttons.map((btn, index) => {
+          return (
+            <div
+              key={index}
+              class="visual-editor-head-button"
+              onClick={btn.handler}
+            >
+              <i class={`iconfont ${btn.icon}`}></i>
+              <span>{btn.label}</span>
+            </div>
+          );
+        });
+      };
+
       return (
         <div class="visual-editor">
           <div class="visual-editor-menu">{renderMenuList()}</div>
-          <div class="visual-editor-head">visual-editor-head</div>
+          <div class="visual-editor-head">{renderHead()}</div>
           <div class="visual-editor-operator">visual-editor-operator</div>
           <div class="visual-editor-body">
             <div class="visual-editor-content">
