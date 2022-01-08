@@ -20,6 +20,7 @@ export default defineComponent({
     'update:modelValue': (val?: editorType) => true,
   },
   setup(props, { emit }) {
+    // 双向绑定至，容器中的组件数据
     const dataModel = useModel(
       () => props.modelValue,
       (val) => emit('update:modelValue', val),
@@ -27,6 +28,7 @@ export default defineComponent({
     // containerRef监听移动过程变化
     const containerRef = ref({} as HTMLDivElement);
 
+    // 一些用于container中拖拽的细节方法
     const methods = {
       clearFocus: (block?: editorBlockData) => {
         let blocks = dataModel.value!.blocks || [];
@@ -41,6 +43,7 @@ export default defineComponent({
       },
     };
 
+    // 菜单组件拖拽到container容器的功能
     const menuDragger = (() => {
       let component = null as null | EditorComponent;
 
@@ -119,12 +122,30 @@ export default defineComponent({
       return blockHandler;
     })();
 
+    // 计算选中和未选中的 block数据
+    const focusData = computed(() => {
+      let focus: editorBlockData[] = [];
+
+      let unfocus: editorBlockData[] = [];
+
+      (dataModel.value?.blocks || []).forEach((block) => {
+        (block.focus ? focus : unfocus).push(block);
+      });
+      return {
+        focus, //选中的数据
+        unfocus,
+      };
+    });
+
+    // 在容器中选中block组件的细节处理
     const focusHandler = (() => {
       return {
         container: {
           onMousedown: (e: MouseEvent) => {
             e.stopPropagation();
             e.preventDefault();
+
+            // 点击空白处清空所有block
             methods.clearFocus();
           },
         },
@@ -133,63 +154,110 @@ export default defineComponent({
             e.stopPropagation();
             e.preventDefault();
             if (e.shiftKey) {
-              block.focus = !block.focus;
+              // 支持按住shift可以多选
+              if (focusData.value.focus.length <= 1) {
+                block.focus = true;
+              } else {
+                //多选
+                block.focus = !block.focus;
+              }
             } else {
-              block.focus = true;
-              methods.clearFocus(block);
+              if (!block.focus) {
+                // 当block未被选中时，没有按住shift
+                block.focus = true;
+                methods.clearFocus(block);
+              }
             }
+            blockGragger.mousedown(e);
           },
         },
       };
     })();
 
-    const renderMenuList = () => {
-      return props.config?.componentList.map((component) => {
-        return (
-          <div
-            class="visual-editor-menu-item"
-            draggable
-            onDragend={menuDragger.dragend}
-            onDragstart={(e) => menuDragger.dragstart(e, component)}
-          >
-            <span class="visual-editor-menu-item-label">{component.label}</span>
-
-            {component.preview()}
-          </div>
-        );
-      });
-    };
-
-    const renderBlock = () => {
-      return (
-        !!dataModel.value &&
-        !!dataModel.value.blocks &&
-        dataModel.value.blocks.map((block, index) => {
-          // console.log(block);
-
-          return (
-            <visual-editor-block
-              {...{
-                onMousedown: (e: MouseEvent) =>
-                  focusHandler.block.onMousedown(e, block),
-              }}
-              block={block}
-              key={index}
-              config={props.config}
-            ></visual-editor-block>
-          );
-        })
-      );
-    };
-
-    const containerStyle = computed(() => {
-      return {
-        width: `${dataModel.value?.container.width}px`,
-        height: `${dataModel.value?.container.height}px`,
+    const blockGragger = (() => {
+      let dragState = {
+        startX: 0,
+        startY: 0,
+        startPos: [] as { left: number; top: number }[],
       };
-    });
+
+      const mousedown = (e: MouseEvent) => {
+        dragState = {
+          startX: e.clientX,
+          startY: e.clientY,
+          startPos: focusData.value.focus.map(({ top, left }) => ({
+            top,
+            left,
+          })),
+        };
+        document.addEventListener('mousemove', mousemove);
+        document.addEventListener('mouseup', mouseup);
+      };
+
+      const mousemove = (e: MouseEvent) => {
+        const durX = e.clientX - dragState.startX;
+        const durY = e.clientY - dragState.startY;
+        focusData.value.focus.forEach((block, index) => {
+          block.left = dragState.startPos[index].left + durX;
+          block.top = dragState.startPos[index].top + durY;
+        });
+      };
+      const mouseup = (e: MouseEvent) => {
+        document.removeEventListener('mousemove', mousemove);
+        document.removeEventListener('mouseup', mouseup);
+      };
+
+      return { mousedown };
+    })();
 
     return () => {
+      // 根据父级传过来的modelValue控制container的宽高
+      const containerStyle = computed(() => {
+        return {
+          width: `${dataModel.value?.container.width}px`,
+          height: `${dataModel.value?.container.height}px`,
+        };
+      });
+      const renderMenuList = () => {
+        return props.config?.componentList.map((component) => {
+          return (
+            <div
+              class="visual-editor-menu-item"
+              draggable
+              onDragend={menuDragger.dragend}
+              onDragstart={(e) => menuDragger.dragstart(e, component)}
+            >
+              <span class="visual-editor-menu-item-label">
+                {component.label}
+              </span>
+
+              {component.preview()}
+            </div>
+          );
+        });
+      };
+
+      const renderBlock = () => {
+        return (
+          !!dataModel.value &&
+          !!dataModel.value.blocks &&
+          dataModel.value.blocks.map((block, index) => {
+            // console.log(block);
+
+            return (
+              <visual-editor-block
+                {...{
+                  onMousedown: (e: MouseEvent) =>
+                    focusHandler.block.onMousedown(e, block),
+                }}
+                block={block}
+                key={index}
+                config={props.config}
+              ></visual-editor-block>
+            );
+          })
+        );
+      };
       return (
         <div class="visual-editor">
           <div class="visual-editor-menu">{renderMenuList()}</div>
