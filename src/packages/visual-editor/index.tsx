@@ -2,6 +2,7 @@ import { useModel } from '@/hooks/useModel';
 import { buttonNativeType } from 'element-plus';
 import { computed, defineComponent, ref } from 'vue';
 import { useVisualCommnad } from '../plugins/ccommand-create';
+import { createEvent } from '../plugins/event';
 import './index.scss';
 import {
   editorBlockData,
@@ -51,6 +52,16 @@ export default defineComponent({
       },
     };
 
+    const dragstart = createEvent();
+    const dragend = createEvent();
+
+    // dragstart.on(() => {
+    //   console.log('listen dragStart');
+    // });
+    // dragend.on(() => {
+    //   console.log('listen dragend');
+    // });
+
     // 菜单组件拖拽到container容器的功能
     const menuDragger = (() => {
       let component = null as null | EditorComponent;
@@ -72,6 +83,8 @@ export default defineComponent({
           );
           containerRef.value.addEventListener('drop', containerHanlder.drop);
           component = current;
+
+          dragstart.emit();
         },
         dragend: (e: DragEvent) => {
           // 拖拽结束后移除监听事件，减少内存使用
@@ -120,10 +133,13 @@ export default defineComponent({
             focus: false,
           });
 
-          dataModel.value = {
-            ...dataModel.value,
-            blocks,
-          } as editorType;
+          // dataModel.value = {
+          //   ...dataModel.value,
+          //   blocks,
+          // } as editorType;
+
+          methods.updateBlocks(blocks);
+          dragend.emit();
         },
       };
 
@@ -187,6 +203,7 @@ export default defineComponent({
         startX: 0,
         startY: 0,
         startPos: [] as { left: number; top: number }[],
+        dragging: false,
       };
 
       const mousedown = (e: MouseEvent) => {
@@ -197,6 +214,7 @@ export default defineComponent({
             top,
             left,
           })),
+          dragging: false,
         };
         document.addEventListener('mousemove', mousemove);
         document.addEventListener('mouseup', mouseup);
@@ -205,6 +223,15 @@ export default defineComponent({
       const mousemove = (e: MouseEvent) => {
         const durX = e.clientX - dragState.startX;
         const durY = e.clientY - dragState.startY;
+        console.log('mousemovue');
+
+        if (!dragState.dragging) {
+          // 当在move鼠标的时候，说明在拖拽，触发拖拽事件
+          dragState.dragging = true;
+          console.log('mousemove-draging');
+
+          dragstart.emit();
+        }
         focusData.value.focus.forEach((block, index) => {
           block.left = dragState.startPos[index].left + durX;
           block.top = dragState.startPos[index].top + durY;
@@ -213,12 +240,25 @@ export default defineComponent({
       const mouseup = (e: MouseEvent) => {
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
+        console.log('mouseup');
+
+        if (dragState.dragging) {
+          console.log('mouseup-dragging');
+
+          dragend.emit();
+        }
       };
 
       return { mousedown };
     })();
 
-    const commander = useVisualCommnad({ focusData, methods, dataModel });
+    const commander = useVisualCommnad({
+      focusData,
+      methods,
+      dataModel,
+      dragstart,
+      dragend,
+    });
 
     const buttons = [
       {

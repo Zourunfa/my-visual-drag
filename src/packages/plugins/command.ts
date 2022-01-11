@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { onMounted, onUnmounted, reactive } from 'vue'
 
 interface CommandExecute {
   undo: () => void,
@@ -10,34 +10,65 @@ interface Command {
   keyboard?: string | string[], //命令快捷键
   execute: (...args: any[]) => CommandExecute,
   flollowQueue?: boolean //命令执行完成之后是否需要执行undo redo存入命令队列
+  init?: () => (() => void | undefined),  //命令初始化函数
+  data?: any   //命令缓存的数据
+  // destroy?: () => (() => void | undefined),
 }
 
 function createComander() {
   const state = reactive({
     current: -1,
     queue: [] as CommandExecute[],
+    commandArray: [] as Command[],
+    destroyList: [] as ((() => void) | undefined)[],
     commands: {} as Record<string, (...args: any[]) => void>
   })
 
   const registry = (command: Command) => {
+    state.commandArray.push(command)
     state.commands[command.name] = (...args) => {
+
+      console.log('command.name:', command.name);
       console.log('state:', state);
 
 
       const { undo, redo } = command.execute(...args)
-      console.log(undo, redo);
 
-      if (command.flollowQueue !== false) {
-
-
-        state.queue.push({ undo, redo })
-        state.current = state.current + 1
-      }
       redo()
-
-
+      if (command.flollowQueue === false) {
+        return
+      }
+      let { queue, current } = state
+      if (queue.length > 0) {
+        queue = queue.slice(0, current + 1)
+        state.queue = queue
+      }
+      queue.push({ undo, redo })
+      state.current = current + 1;
     }
+
   }
+
+  const init = () => {
+    console.log('init');
+
+    const onKeydown = (e: KeyboardEvent) => {
+      console.log('监听到键盘事件')
+    }
+    window.addEventListener('keydown', onKeydown)
+
+    // debugger
+    state.commandArray.forEach(command => {
+      // !!command.init && console.log(command.init())
+      console.log('command-init');
+
+
+      return !!command.init && state.destroyList.push(command.init())
+    })
+    state.destroyList.push(() => window.removeEventListener('keydown', onKeydown))
+  }
+
+
 
   registry({
     name: 'undo',
@@ -60,7 +91,7 @@ function createComander() {
           if (current === -1) {
             return
           }
-          console.log(state.queue);
+          console.log('curent:', current);
           const { undo } = state.queue[current]
 
 
@@ -85,8 +116,10 @@ function createComander() {
     execute: () => {
 
 
+      // 
       return {
         redo: () => {
+
           let { current } = state
 
           if (!state.queue[current + 1]) return
@@ -102,14 +135,14 @@ function createComander() {
       }
     }
   })
-
-
+  onUnmounted(() => state.destroyList.forEach(fn => !!fn && fn()))
 
 
 
   return {
     state,
-    registry
+    registry,
+    init,
   }
 }
 
